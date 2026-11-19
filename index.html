@@ -408,10 +408,10 @@ function t3(m){
 /* ホーム・ルーター */
 const TOOLS=[
  {id:'t1',n:'①資産管理部連携用データ作成（エナリス）',d:'入札計画・入札結果のExcelファイルを自動生成します。',f:t1},
- {id:'t2',n:'②入札結果メール転送ツール',d:'約定通知メールの本文を、指定フォーマットのテキストに変換します。',f:t2},
- {id:'t3',n:'③アセスメントⅡ提出資料作成ツール',d:'TSOのxlsxと電站運行データから提出用テンプレートに自動転記します。',f:t3},
- {id:'t4',n:'④入札結果チェック用一覧',d:'入札情報CSV・約定結果XMLを、リソースごとに見やすい一覧表へ変換します。',f:t4},
- {id:'t5',n:'⑤電站運行データ抽出ツール',d:'EMS運行記録（zip）を欠損秒補完のうえxlsx化し、指定した時間帯ごとにシートを追加します。',f:t5}];
+ {id:'t2',n:'②入札結果メール転送',d:'約定通知メールの本文を、指定フォーマットのテキストに変換します。',f:t2},
+ {id:'t3',n:'③アセスメントⅡ提出資料作成',d:'TSOのxlsxと電站運行データから提出用テンプレートに自動転記します。',f:t3},
+ {id:'t4',n:'④入札結果チェック用',d:'入札情報CSV・約定結果XMLを、リソースごとに見やすい一覧表へ変換します。',f:t4},
+ {id:'t5',n:'⑤電站運行データ抽出',d:'EMS運行記録（zip）を欠損秒補完のうえxlsx化し、指定した時間帯ごとにシートを追加します。',f:t5}];
 
 function dropify(root){root.querySelectorAll('input[type=file]').forEach(i=>{const l=i.closest('label');if(!l||l.classList.contains('dz'))return;l.classList.add('dz');
   const ext=(i.accept||'').split(',').map(x=>x.trim().toLowerCase()).filter(Boolean),hint=h('small',{},'ここにファイルをドラッグ＆ドロップ、またはクリックして選択'+(ext.length?`（${ext.join(' ')}）`:''));l.append(hint);
