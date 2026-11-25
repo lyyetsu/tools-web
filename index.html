@@ -224,23 +224,23 @@ function t4(m){
     const all=[],bad=[];
     for(const f of file.files){const n=f.name.toLowerCase();
       if(n.endsWith('.csv'))for(const r of csvObj(await dec(f)).rows){const rs=(r.resource_short_name||'').trim(),t=pdt(r.start_time);if(!rs||!t)continue;
-        const st=(r.status||'').trim();let q=null,sy=null,pr=null;if(st=='不落')sy='×';else if(st=='約定'){q=num(r.kW);sy='〇'}if(q!=null)pr=num(r.price);all.push({rs,t,q,sy,pr})}
+        const st=(r.status||'').trim();let q=null,sy=null,pr=null;if(st=='不落')sy='×';else if(st=='約定'){q=num(r.kW);sy='〇'}if(q!=null)pr=num(r.price);const ct=(r.category||'').trim(),bc=ct==''?null:ct=='一次'?'一次調整力':ct,bq=num(r.kW),bp=num(r.price);all.push({rs,t,q,sy,pr,bc,bq,bp})}
       else if(n.endsWith('.xml')){const doc=new DOMParser().parseFromString(await f.text(),'application/xml');if(doc.querySelector('parsererror')){bad.push(f.name);continue}
         for(const ar of doc.getElementsByTagName('AwardResults')){const s=ar.getAttribute('StartTime'),d=ar.getElementsByTagName('AwardResultsData')[0];if(!s||!d)continue;
           const rs=(d.getAttribute('ResourceShortName')||'').trim(),t=pdt(s.slice(0,19));if(!rs||!t)continue;const q=num(d.getAttribute('PrimaryContractQuantityInKw'));
-          all.push({rs,t,q,sy:q!=null?'〇':null,pr:q!=null?num(d.getAttribute('CorrectedUnitPrice')):null})}}
+          all.push({rs,t,q,sy:q!=null?'〇':null,pr:q!=null?num(d.getAttribute('CorrectedUnitPrice')):null,bc:null,bq:null,bp:null})}}
       else bad.push(f.name)}
     if(bad.length)out.append(note('warn','認識できなかったファイル: '+bad.join('、')));
     if(!all.length)return out.append(note('err','有効なデータが読み取れませんでした。ファイル形式を確認してください。'));
     const mg=new Map();for(const e of all){const k=e.rs+'|'+e.t.getTime(),x=mg.get(k);
-      if(!x)mg.set(k,{rs:e.rs,t:e.t,q:e.q,sy:e.sy,pr:e.pr});else{if(e.q!=null)x.q=(x.q||0)+e.q;if(x.sy==null)x.sy=e.sy;if(x.pr==null)x.pr=e.pr}}
+      if(!x)mg.set(k,{rs:e.rs,t:e.t,q:e.q,sy:e.sy,pr:e.pr,bc:e.bc,bq:e.bq,bp:e.bp});else{if(e.q!=null)x.q=(x.q||0)+e.q;if(x.sy==null)x.sy=e.sy;if(x.pr==null)x.pr=e.pr;if(e.bq!=null)x.bq=(x.bq||0)+e.bq;if(x.bc==null)x.bc=e.bc;if(x.bp==null)x.bp=e.bp}}
     const by={};for(const v of mg.values())((by[v.rs]??={})[v.t.getTime()]=v);
     const tb={};for(const [rs,mp] of Object.entries(by)){const days=[...new Set(Object.keys(mp).map(k=>Math.floor(k/864e5)))].sort((a,b)=>a-b),L=[];
-      for(const d of days)for(let i=0;i<48;i++){const t=new Date(d*864e5+i*18e5),v=mp[t.getTime()];L.push([t,v?.sy??'',v?.q??'',v?.pr??''])}tb[rs]=L}
-    const names=Object.keys(tb).sort(),wb=new ExcelJS.Workbook(),used=new Set(),HD=['リソース名','時間','結果','約定量','価格'];
-    for(const rs of names){const w=wb.addWorksheet(safeName(rs,used));w.columns=HD.map(()=>({style:{font:F}}));w.addRow(HD);tb[rs].forEach(([t,s,q,p])=>w.addRow([rs,disp(t),s,q===''?null:q,p===''?null:p]))}
+      for(const d of days)for(let i=0;i<48;i++){const t=new Date(d*864e5+i*18e5),v=mp[t.getTime()];L.push([t,v?.bc??'',v?.bq??'',v?.bp??'',v?.sy??'',v?.q??'',v?.pr??''])}tb[rs]=L}
+    const names=Object.keys(tb).sort(),wb=new ExcelJS.Workbook(),used=new Set(),HD=['リソース名','時間','商品','入札量','入札単価','結果','約定量','約定単価'];
+    for(const rs of names){const w=wb.addWorksheet(safeName(rs,used));w.columns=HD.map(()=>({style:{font:F}}));w.addRow(HD);tb[rs].forEach(([t,c,bq,bp,s,q,p])=>w.addRow([rs,disp(t),c,bq===''?null:bq,bp===''?null:bp,s,q===''?null:q,p===''?null:p]))}
     const show=h('div'),sel=h('select',{on:{change:()=>draw()}},names.map(n=>h('option',{},n)));
-    const draw=()=>{const rs=sel.value,L=tb[rs].map(([t,s,q,p])=>[rs,disp(t),s,q,p]),tsv=[HD,...L].map(r=>r.join('\t')).join('\n');
+    const draw=()=>{const rs=sel.value,L=tb[rs].map(([t,c,bq,bp,s,q,p])=>[rs,disp(t),c,bq,bp,s,q,p]),tsv=[HD,...L].map(r=>r.join('\t')).join('\n');
       show.replaceChildren(h('p',{},btn('表全体をコピー（Excelに貼り付け可）',e=>{copy(tsv);e.target.textContent='コピーしました'})),
         h('div',{className:'tw'},h('table',{},h('tr',{},HD.map(x=>h('th',{},x))),L.map(r=>h('tr',{},r.map(c=>h('td',{},String(c))))))))};
     out.append(note('ok',`変換が完了しました（${names.length}リソース分）。`),btn('全リソース分をダウンロード（xlsx、リソースごとにシート分け）',()=>xsave(wb,'入札結果チェック用一覧.xlsx'),'p'),
@@ -408,10 +408,10 @@ function t3(m){
 /* ホーム・ルーター */
 const TOOLS=[
  {id:'t1',n:'①資産管理部連携用データ作成（エナリス）',d:'入札計画・入札結果のExcelファイルを自動生成します。',f:t1},
- {id:'t2',n:'②入札結果メール転送',d:'約定通知メールの本文を、指定フォーマットのテキストに変換します。',f:t2},
- {id:'t3',n:'③アセスメントⅡ提出資料作成',d:'TSOのxlsxと電站運行データから提出用テンプレートに自動転記します。',f:t3},
- {id:'t4',n:'④入札結果チェック用',d:'入札情報CSV・約定結果XMLを、リソースごとに見やすい一覧表へ変換します。',f:t4},
- {id:'t5',n:'⑤電站運行データ抽出',d:'EMS運行記録（zip）を欠損秒補完のうえxlsx化し、指定した時間帯ごとにシートを追加します。',f:t5}];
+ {id:'t2',n:'②入札結果メール転送ツール',d:'約定通知メールの本文を、指定フォーマットのテキストに変換します。',f:t2},
+ {id:'t3',n:'③アセスメントⅡ提出資料作成ツール',d:'TSOのxlsxと電站運行データから提出用テンプレートに自動転記します。',f:t3},
+ {id:'t4',n:'④入札結果チェック用一覧',d:'入札情報CSV・約定結果XMLを、リソースごとに見やすい一覧表へ変換します。',f:t4},
+ {id:'t5',n:'⑤電站運行データ抽出ツール',d:'EMS運行記録（zip）を欠損秒補完のうえxlsx化し、指定した時間帯ごとにシートを追加します。',f:t5}];
 
 function dropify(root){root.querySelectorAll('input[type=file]').forEach(i=>{const l=i.closest('label');if(!l||l.classList.contains('dz'))return;l.classList.add('dz');
   const ext=(i.accept||'').split(',').map(x=>x.trim().toLowerCase()).filter(Boolean),hint=h('small',{},'ここにファイルをドラッグ＆ドロップ、またはクリックして選択'+(ext.length?`（${ext.join(' ')}）`:''));l.append(hint);
